@@ -16,15 +16,21 @@ class Spotify():
                                           client_id=os.getenv('SPOTIPY_CLIENTID'),
                                           client_secret=os.getenv('SPOTIPY_CLIENTSECRET'),
                                           redirect_uri="http://localhost:3000",
-                                          scope="user-read-playback-state"))
+                                          scope=["user-read-playback-state", "user-modify-playback-state"]))
 
     def get_currently_playing(self):
         results = self.sp.currently_playing()
         return results
 
+    def pause_playback(self):
+        self.sp.pause_playback()
+    
+    def start_playback(self):
+        self.sp.start_playback()
+
     
 class Display():
-    def __init__(self, scr):
+    def __init__(self, scr, spot):
         self.scr = scr
         curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
         curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLACK)
@@ -34,8 +40,55 @@ class Display():
         self.main_win.clear()
         self.height, self.width = scr.getmaxyx()
 
-        self.spot = Spotify()
-    
+        self.spot = spot    
+
+    def get_command(self):
+        self.command = ""
+        win_height = 3
+        win_width = self.width
+        win_y = self.height - win_height
+        win_x = 0
+        self.command_win = curses.newwin(win_height, win_width, win_y, win_x)
+
+        self.command_win.attron(curses.color_pair(1))
+        self.command_win.attroff(curses.color_pair(1))
+
+        self.command_win.border()
+        curses.curs_set(1)
+
+        start_x = 1
+        start_y = 1
+        max_width = win_width - 2  # Subtract 2 to account for the border
+
+
+        prompt = " > "
+        self.command_win.addstr(start_y, start_x, prompt, curses.color_pair(2))
+        self.command_win.refresh()
+
+        while True:
+            key = self.command_win.getch()
+            if key == curses.KEY_ENTER or key == ord('\n'):
+                break
+            elif key == curses.KEY_BACKSPACE or key == ord('\b') or key == 127:
+                if len(self.command) > 0:
+                    self.command = self.command[:-1]
+            else:
+                self.command += chr(key)
+
+            self.command_win.border()  # Redraw the border
+
+            self.command_win.addstr(start_y, start_x + len(prompt), " " * (max_width - len(prompt)))
+
+            # Truncate the command if it exceeds the maximum width
+            display_command = self.command[-max_width+len(prompt):]
+
+            self.command_win.addstr(start_y, start_x, prompt + display_command, curses.color_pair(2))
+            self.command_win.refresh()
+
+        curses.curs_set(0)
+
+        return self.command
+
     def show_currently_playing(self):
         dict = self.spot.get_currently_playing()
         if dict is None:
@@ -67,65 +120,17 @@ class Display():
 
         # Display the playback status
         status = "Playing" if is_playing else "Paused"
+
+        self.main_win.delch(7, 0)
         self.main_win.addstr(7, 0, f"Status: {status}", curses.color_pair(2))
 
         self.main_win.refresh()
 
 
-    def get_command(self):
-        self.command = ""
-        win_height = 3
-        win_width = self.width
-        win_y = self.height - win_height
-        win_x = 0
-        self.command_win = curses.newwin(win_height, win_width, win_y, win_x)
-
-        # Draw the white outline
-        self.command_win.attron(curses.color_pair(1))
-        self.command_win.attroff(curses.color_pair(1))
-
-        self.command_win.border()
-        curses.curs_set(1)
-
-        # Calculate the position to display the text within the box
-        start_x = 1
-        start_y = 1
-        max_width = win_width - 2  # Subtract 2 to account for the border
-
-
-        prompt = " > "
-        self.command_win.addstr(start_y, start_x, prompt, curses.color_pair(2))
-        self.command_win.refresh()
-
-        while True:
-            key = self.command_win.getch()
-            if key == curses.KEY_ENTER or key == ord('\n'):
-                break
-            elif key == curses.KEY_BACKSPACE or key == ord('\b') or key == 127:
-                if len(self.command) > 0:
-                    self.command = self.command[:-1]
-            else:
-                self.command += chr(key)
-
-            self.command_win.border()  # Redraw the border
-
-
-            self.command_win.addstr(start_y, start_x + len(prompt), " " * (max_width - len(prompt)))
-
-            # Truncate the command if it exceeds the maximum width
-            display_command = self.command[-max_width+len(prompt):]
-
-            self.command_win.addstr(start_y, start_x, prompt + display_command, curses.color_pair(2))
-            self.command_win.refresh()
-
-        curses.curs_set(0)
-
-        return self.command
-
 def main(scr):
-    display = Display(scr) 
+    spot = Spotify()
+    display = Display(scr, spot) 
     quit_flag = False
-
     
     def handle_input():
         nonlocal quit_flag
@@ -136,6 +141,10 @@ def main(scr):
             if command == 'quit':
                 quit_flag = True
                 break
+            if command == 'pause':
+                spot.pause_playback()
+            if command == 'play':
+                spot.start_playback()
 
     def update_screen():
         nonlocal quit_flag

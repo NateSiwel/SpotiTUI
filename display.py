@@ -23,7 +23,11 @@ class Spotify():
         return results
 
     def pause_playback(self):
-        self.sp.pause_playback()
+        try:
+            self.sp.pause_playback()
+        except spotipy.SpotifyException as e:
+            return str(e)
+        return None
     
     def start_playback(self):
         try:
@@ -63,12 +67,12 @@ class Display():
         start_y = 1
         max_width = win_width - 2  # Subtract 2 to account for the border
 
-
         prompt = " > "
         self.command_win.addstr(start_y, start_x, prompt, curses.color_pair(2))
         self.command_win.refresh()
 
         while True:
+            max_width = win_width - 2
             key = self.command_win.getch()
             if key == curses.KEY_ENTER or key == ord('\n'):
                 break
@@ -80,7 +84,7 @@ class Display():
 
             self.command_win.border()  # Redraw the border
 
-            self.command_win.addstr(start_y, start_x + len(prompt), " " * (max_width - len(prompt)))
+            self.command_win.addstr(start_y, start_x + len(prompt), " " * (20 - len(prompt)))
 
             # Truncate the command if it exceeds the maximum width
             display_command = self.command[-max_width+len(prompt):]
@@ -95,7 +99,6 @@ class Display():
     def display_error(self, error_message):
         if error_message is None:
             return
-
         
         error_lines = (error_message + '\n\nPress any key to continue').split('\n')
 
@@ -103,7 +106,6 @@ class Display():
         win_width = self.width
         win_y = 0
         win_x = 0
-
 
         error_win = curses.newwin(win_height, win_width, win_y, win_x)
         error_win.attron(curses.color_pair(1))  # Use color pair 1 for error messages
@@ -133,10 +135,11 @@ class Display():
         duration_ms = dict['item']['duration_ms']
         name = dict['item']['name']
 
-        #self.main_win.clear()
-
         # Display the track name and artists
+        self.main_win.delch(0, 0)
         self.main_win.addstr(0, 0, f"Now Playing: \"{name}\"", curses.color_pair(1))
+
+        self.main_win.delch(1, 0)
         self.main_win.addstr(1, 0, f"Artists: {', '.join([artist['name'] for artist in artists_object])}", curses.color_pair(2))
 
         # Display the album name
@@ -144,8 +147,9 @@ class Display():
 
         # Display the progress bar
         progress_percent = progress_ms / duration_ms
-        progress_width = int(progress_percent * (curses.COLS - 10))
-        self.main_win.addstr(5, 0, "Progress: [" + "=" * progress_width + ">" + " " * (curses.COLS - 11 - progress_width) + "]", curses.color_pair(2))
+        progress_width = int(progress_percent * (curses.COLS - 15))
+        self.main_win.delch(5, 0)
+        self.main_win.addstr(5, 0, "Progress: [" + "=" * progress_width + ">" + " " * (curses.COLS - 15 -  progress_width) + "]", curses.color_pair(2))
 
         # Display the playback status
         status = "Playing" if is_playing else "Paused"
@@ -171,7 +175,11 @@ def main(scr):
                 quit_flag = True
                 break
             if command == 'pause':
-                spot.pause_playback()
+                ret = spot.pause_playback()
+                display.command_win.clear()
+                display.command_win.refresh()
+                if ret is not None:
+                    display.display_error(ret)
             if command == 'play':
                 ret = spot.start_playback()
                 display.command_win.clear()

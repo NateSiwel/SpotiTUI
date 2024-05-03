@@ -29,12 +29,23 @@ class Spotify():
             return str(e)
         return None
     
-    def start_playback(self):
+    def start_playback(self, uris=None):
         try:
-            self.sp.start_playback()
+            if uris is None:
+                self.sp.start_playback()
+            else:
+                self.sp.start_playback(uris=uris)
         except spotipy.SpotifyException as e:
             return str(e)
         return None
+    
+    def search(self,search):
+        try:
+            ret = self.sp.search(search)
+        except spotipy.SpotifyException as e:
+            return str(e)
+        return ret 
+ 
 
 class Display():
     def __init__(self, scr, spot):
@@ -159,6 +170,16 @@ class Display():
 
         self.main_win.refresh()
 
+    def show_search(self, data):
+        self.main_win.delch(12, 0)
+        self.main_win.delch(13, 0)
+        self.main_win.addstr(12, 0, "\n".join(
+        song['name'] + " - " + ", ".join(artist['name'] for artist in song['artists'])
+            for song in data['tracks']['items']
+        ), curses.color_pair(2))
+        self.main_win.refresh()
+
+
 def main(scr):
     spot = Spotify()
     display = Display(scr, spot) 
@@ -170,14 +191,27 @@ def main(scr):
         commands = {
             'quit': handle_quit,
             'pause': handle_pause,
-            'play': handle_play
+            'play': handle_play,
+            'search': handle_search
         }
         while not quit_flag:
             command = display.get_command().strip()
-            if command in commands:
-                commands[command]()
+
+            if ' ' in command:
+                cmd, params = command.split(' ', 1)
+                cmd = cmd.strip()
+                params = params.strip()
             else:
-                display.display_error(f"Unknown command: {command}")
+                cmd = command
+                params = None
+
+            if cmd in commands:
+                if params is not None:
+                    commands[cmd](params)
+                else:
+                    commands[cmd]()
+            else:
+                display.display_error(f"Unknown command: {cmd}")
 
     def handle_quit():
         nonlocal quit_flag
@@ -189,11 +223,26 @@ def main(scr):
         if ret is not None:
             display.display_error(ret)
 
-    def handle_play():
-        ret = spot.start_playback()
-        clear_command_win()
+    def handle_play(query=None):
+        if query is None:
+            ret = spot.start_playback()
+            if ret is not None:
+                display.display_error(ret)
+            clear_command_win()
+            return
+
+        ret = spot.search(query)
         if ret is not None:
-            display.display_error(ret)
+            if 'tracks' in ret:
+                track_uri = ret['tracks']['items'][0]['uri']
+                spot.start_playback(uris=[track_uri])
+        return
+        
+    def handle_search(query):
+        ret = spot.search(query)
+        display.show_search(ret)
+        clear_command_win()
+                 
 
     def clear_command_win():
         display.command_win.clear()

@@ -167,25 +167,37 @@ def main(scr):
     
     def handle_input():
         nonlocal quit_flag
+        commands = {
+            'quit': handle_quit,
+            'pause': handle_pause,
+            'play': handle_play
+        }
         while not quit_flag:
-            command = display.get_command()
+            command = display.get_command().strip()
+            if command in commands:
+                commands[command]()
+            else:
+                display.display_error(f"Unknown command: {command}")
 
-            command = command.strip()
-            if command == 'quit':
-                quit_flag = True
-                break
-            if command == 'pause':
-                ret = spot.pause_playback()
-                display.command_win.clear()
-                display.command_win.refresh()
-                if ret is not None:
-                    display.display_error(ret)
-            if command == 'play':
-                ret = spot.start_playback()
-                display.command_win.clear()
-                display.command_win.refresh()
-                if ret is not None:
-                    display.display_error(ret)
+    def handle_quit():
+        nonlocal quit_flag
+        quit_flag = True
+
+    def handle_pause():
+        ret = spot.pause_playback()
+        clear_command_win()
+        if ret is not None:
+            display.display_error(ret)
+
+    def handle_play():
+        ret = spot.start_playback()
+        clear_command_win()
+        if ret is not None:
+            display.display_error(ret)
+
+    def clear_command_win():
+        display.command_win.clear()
+        display.command_win.refresh()
 
     def update_screen():
         nonlocal quit_flag

@@ -26,9 +26,12 @@ class Spotify():
         self.sp.pause_playback()
     
     def start_playback(self):
-        self.sp.start_playback()
+        try:
+            self.sp.start_playback()
+        except spotipy.SpotifyException as e:
+            return str(e)
+        return None
 
-    
 class Display():
     def __init__(self, scr, spot):
         self.scr = scr
@@ -89,6 +92,32 @@ class Display():
 
         return self.command
 
+    def display_error(self, error_message):
+        if error_message is None:
+            return
+
+        
+        error_lines = (error_message + '\n\nPress any key to continue').split('\n')
+
+        win_height = len(error_lines) + 2 
+        win_width = self.width
+        win_y = 0
+        win_x = 0
+
+
+        error_win = curses.newwin(win_height, win_width, win_y, win_x)
+        error_win.attron(curses.color_pair(1))  # Use color pair 1 for error messages
+        error_win.attroff(curses.color_pair(1))
+        error_win.border()
+
+        for i, line in enumerate(error_lines):
+            error_win.addstr(1 + i, 2, line[:win_width - 4], curses.color_pair(1))
+
+        error_win.refresh()
+        error_win.getch()  # Wait for a key press before closing the error window
+        error_win.clear()
+        error_win.refresh()
+
     def show_currently_playing(self):
         dict = self.spot.get_currently_playing()
         if dict is None:
@@ -126,11 +155,11 @@ class Display():
 
         self.main_win.refresh()
 
-
 def main(scr):
     spot = Spotify()
     display = Display(scr, spot) 
     quit_flag = False
+    curses.noecho()
     
     def handle_input():
         nonlocal quit_flag
@@ -144,7 +173,11 @@ def main(scr):
             if command == 'pause':
                 spot.pause_playback()
             if command == 'play':
-                spot.start_playback()
+                ret = spot.start_playback()
+                display.command_win.clear()
+                display.command_win.refresh()
+                if ret is not None:
+                    display.display_error(ret)
 
     def update_screen():
         nonlocal quit_flag

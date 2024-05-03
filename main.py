@@ -4,6 +4,7 @@ import time
 import threading
 from spotify import Spotify
 from display import Display
+from spotipy import SpotifyException
 
 def main(scr):
     spot = Spotify()
@@ -77,8 +78,12 @@ def main(scr):
         nonlocal quit_flag
         while not quit_flag:
             
-            display.show_currently_playing()
-            time.sleep(1) 
+            try: 
+                display.show_currently_playing()
+                time.sleep(1) 
+            except SpotifyException as e:
+                display.display_error(str(e))
+
 
     update_thread = threading.Thread(target=update_screen) 
     input_thread = threading.Thread(target=handle_input)

@@ -18,8 +18,9 @@ class Display():
 
     def clear_command_window(self):
         y, x = self.command_win.getyx()
-        self.main_win.move(y, x)
-        self.main_win.clrtoeol()
+        self.command_win.move(1, 1)
+        self.command_win.clrtoeol()
+        self.command_win.refresh()
 
 
     def get_command(self):
@@ -130,12 +131,13 @@ class Display():
 
         self.main_win.move(name_height + 1, 0)
         self.main_win.clrtoeol()
-        self.main_win.addstr(name_height + 1, 0, f"Artists: {', '.join([artist['name'] for artist in artists_object])}", curses.color_pair(2))
+        artists_str = f"By {', '.join([artist['name'] for artist in artists_object])}"
+        self.main_win.addstr(name_height + 1, (self.width - len(artists_str))//2, artists_str, curses.color_pair(2))
 
         # Display the album name
         self.main_win.move(name_height + 3, 0)
         self.main_win.clrtoeol()
-        self.main_win.addstr(name_height + 3, 0, f"Album: {album_name}", curses.color_pair(2))
+        self.main_win.addstr(name_height + 3, (self.width - len(album_name))//2, f"{album_name}", curses.color_pair(2))
 
         # Display the progress bar
         progress = progress_ms / duration_ms
@@ -155,7 +157,9 @@ class Display():
         status = "Playing" if is_playing else "Paused"
         self.main_win.move(name_height + 8, 0)
         self.main_win.clrtoeol()
-        self.main_win.addstr(name_height + 8, 0,status, curses.color_pair(2))
+        self.main_win.addstr(name_height + 8, (self.width - len(status)+1)//2,status, curses.color_pair(2))
+
+        curses.curs_set(False)
 
         self.main_win.refresh()
 

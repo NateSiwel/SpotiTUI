@@ -24,12 +24,12 @@ class Spotify():
             return str(e)
         return None
     
-    def start_playback(self, uris=None):
+    def start_playback(self, uris=None, offset=None):
         try:
             if uris is None:
                 self.sp.start_playback()
             else:
-                self.sp.start_playback(uris=uris)
+                self.sp.start_playback(uris=uris, offset=offset)
         except spotipy.SpotifyException as e:
             return str(e)
         return None
@@ -54,3 +54,10 @@ class Spotify():
         except spotipy.SpotifyException as e:
             return str(e)
         return None
+
+    def recommendations(self,seed_tracks):
+        try:
+            ret = self.sp.recommendations(seed_tracks=seed_tracks)
+        except spotipy.SpotifyException as e:
+            return str(e)
+        return ret 

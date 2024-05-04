@@ -20,7 +20,8 @@ def main(scr):
             'play': handle_play,
             'search': handle_search,
             'skip': handle_skip,
-            'queue': add_to_queue
+            'queue': add_to_queue,
+            'mix': mix 
         }
         while not quit_flag:
             command = display.get_command().strip()
@@ -84,6 +85,19 @@ def main(scr):
             if 'tracks' in ret:
                 track_uri = ret['tracks']['items'][0]['uri']
                 spot.add_to_queue(uri=track_uri)
+
+    def mix(query):
+        display.clear_command_window()
+        uri = spot.search(query)['tracks']['items'][0]['uri']
+        ret = spot.recommendations(seed_tracks=[uri])
+        track_uris = [track['uri'] for track in ret['tracks']]
+        if uri not in track_uris:
+            track_uris.append(uri)
+        offset = {"uri": uri}
+        spot.start_playback(uris=track_uris, offset=offset)
+        
+        
+
 
     def update_screen():
         nonlocal quit_flag

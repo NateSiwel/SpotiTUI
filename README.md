@@ -6,3 +6,4 @@ Spotify Terminal UI: A curses-based Python program that will allow for requests 
 - can select and play songs with "play in bloom" or "play in bloom by nirvana"
 - can queue song with "queue in bloom"
 - can skip with skip
+- Mix command plays queried song and queues similar 

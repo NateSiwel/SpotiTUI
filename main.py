@@ -46,17 +46,17 @@ def main(scr):
         quit_flag = True
 
     def handle_pause():
+        display.clear_command_window()
         ret = spot.pause_playback()
-        clear_command_win()
         if ret is not None:
             display.display_error(ret)
 
     def handle_play(query=None):
+        display.clear_command_window()
         if query is None:
             ret = spot.start_playback()
             if ret is not None:
                 display.display_error(ret)
-            clear_command_win()
             return
 
         ret = spot.search(query)
@@ -67,30 +67,23 @@ def main(scr):
         return
         
     def handle_search(query):
+        display.clear_command_window()
         ret = spot.search(query)
         display.show_search(ret)
-        clear_command_win()
 
     def handle_skip():
+        display.clear_command_window()
         ret = spot.next_track()
         if ret is not None:
             display.display_error(ret)
-        clear_command_win()
-        return
  
     def add_to_queue(query):
+        display.clear_command_window()
         ret = spot.search(query)
         if ret is not None:
             if 'tracks' in ret:
                 track_uri = ret['tracks']['items'][0]['uri']
                 spot.add_to_queue(uri=track_uri)
-        return    
-
-
-
-    def clear_command_win():
-        display.command_win.clear()
-        display.command_win.refresh()
 
     def update_screen():
         nonlocal quit_flag

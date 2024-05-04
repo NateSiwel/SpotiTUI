@@ -16,6 +16,12 @@ class Display():
 
         self.spot = spot    
 
+    def clear_command_window(self):
+        y, x = self.command_win.getyx()
+        self.main_win.move(y, x)
+        self.main_win.clrtoeol()
+
+
     def get_command(self):
         self.command = ""
         win_height = 3

@@ -40,5 +40,17 @@ class Spotify():
         except spotipy.SpotifyException as e:
             return str(e)
         return ret 
- 
 
+    def next_track(self):
+        try:
+            ret = self.sp.next_track()
+        except spotipy.SpotifyException as e:
+            return str(e)
+        return ret
+
+    def add_to_queue(self, uri):
+        try:
+            self.sp.add_to_queue(uri=uri)
+        except spotipy.SpotifyException as e:
+            return str(e)
+        return None

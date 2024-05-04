@@ -18,7 +18,9 @@ def main(scr):
             'quit': handle_quit,
             'pause': handle_pause,
             'play': handle_play,
-            'search': handle_search
+            'search': handle_search,
+            'skip': handle_skip,
+            'queue': add_to_queue
         }
         while not quit_flag:
             command = display.get_command().strip()
@@ -68,7 +70,23 @@ def main(scr):
         ret = spot.search(query)
         display.show_search(ret)
         clear_command_win()
-                 
+
+    def handle_skip():
+        ret = spot.next_track()
+        if ret is not None:
+            display.display_error(ret)
+        clear_command_win()
+        return
+ 
+    def add_to_queue(query):
+        ret = spot.search(query)
+        if ret is not None:
+            if 'tracks' in ret:
+                track_uri = ret['tracks']['items'][0]['uri']
+                spot.add_to_queue(uri=track_uri)
+        return    
+
+
 
     def clear_command_win():
         display.command_win.clear()

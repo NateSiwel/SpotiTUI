@@ -1,5 +1,7 @@
 import curses
 from art import *
+import re
+import time
 
 class Display():
     def __init__(self, scr, spot):
@@ -47,7 +49,7 @@ class Display():
             else:
                 self.command += chr(key)
 
-            self.command_win.border()  # Redraw the border
+            self.command_win.border() 
 
             self.command_win.addstr(start_y, start_x + len(prompt), " " * (max_width - len(prompt)))
 
@@ -87,29 +89,38 @@ class Display():
 
     def show_currently_playing(self):
         dict = self.spot.get_currently_playing()
+
         if dict is None:
             return
+    
         progress_ms = dict['progress_ms']
         is_playing = dict['is_playing']
-
         album_name = dict['item']['album']['name']
         album_art = dict['item']['album']['images'][0]
-
         artists_object = dict['item']['album']['artists']
-
         duration_ms = dict['item']['duration_ms']
         name = dict['item']['name']
+        name = re.sub(r'[-(\[].*', '', name)
 
         # Display the track name and artists
-        song_name = text2art(name).splitlines() 
-        #self.main_win.addstr(20, int((self.width / 2) - (60) / 2), song_name, curses.color_pair(1))
+        song_name = text2art(name).splitlines()
+
+        name_height = 1
         name_width = max(len(i) for i in song_name)
-        name_height = 1 
-        for y, line in enumerate(song_name, name_height):
-            self.main_win.move(y, 0)
-            self.main_win.clrtoeol()
-            self.main_win.addstr(y, ((self.width - name_width)//2), line)
-            name_height += 1
+        if (name_width > self.width):
+            name_width = len(name)
+            song_name = name
+            for y in range(6):
+                self.main_win.move(y+1, 0)
+                self.main_win.clrtoeol()
+                name_height += 1 
+            self.main_win.addstr((name_height//2)-1, ((self.width - name_width)//2), song_name)
+        else:
+            for y, line in enumerate(song_name, name_height):
+                self.main_win.move(y, 0)
+                self.main_win.clrtoeol()
+                self.main_win.addstr(y, ((self.width - name_width)//2), line)
+                name_height += 1
 
         self.main_win.move(name_height + 1, 0)
         self.main_win.clrtoeol()
@@ -121,18 +132,24 @@ class Display():
         self.main_win.addstr(name_height + 3, 0, f"Album: {album_name}", curses.color_pair(2))
 
         # Display the progress bar
-        progress_percent = progress_ms / duration_ms
-        progress_width = int(progress_percent * (curses.COLS - 15))
+        progress = progress_ms / duration_ms
+        bar_width = self.width - 10
+        filled_blocks = int(progress * bar_width)
+        progress_bar = "█" * filled_blocks + "░" * (bar_width - filled_blocks)
+        elapsed_str = time.strftime("%M:%S", time.gmtime(progress_ms // 1000))
+        remaining_str = time.strftime("%M:%S", time.gmtime((duration_ms - progress_ms) // 1000))
+
         self.main_win.move(name_height + 5, 0)
         self.main_win.clrtoeol()
-        self.main_win.addstr(name_height + 5, 0, "Progress: [" + "=" * progress_width + ">" + " " * (curses.COLS - 15 -  progress_width) + "]", curses.color_pair(2))
+        self.main_win.addstr(name_height + 5, 5, f"[{progress_bar}]")
+        self.main_win.addstr(name_height + 6, 5, f"{elapsed_str} / {remaining_str}")
+        self.main_win.addstr(name_height + 5, 1, "♪")
 
         # Display the playback status
         status = "Playing" if is_playing else "Paused"
-
-        self.main_win.move(name_height + 7, 0)
+        self.main_win.move(name_height + 8, 0)
         self.main_win.clrtoeol()
-        self.main_win.addstr(name_height + 7, 0, f"Status: {status}", curses.color_pair(2))
+        self.main_win.addstr(name_height + 8, 0,status, curses.color_pair(2))
 
         self.main_win.refresh()
 
